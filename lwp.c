@@ -8,7 +8,14 @@ Kenneth Choi & Logan Schwarz
 #include "lwp.h"
 #include <pthread.h>
 #include <unistd.h>
+#include <sys/resource.h>
 
+#
+/*
+* _SC_PAGE_SIZE = 4096 bytes
+* RLIMIT_STACK = 8388608 bytes
+* 8388608 / 4096 = 2048 ("safe size = 8 mil")
+*/
 
 tid_t lwp_create(lwpfun function, void *argument){
     /* 
@@ -16,8 +23,26 @@ tid_t lwp_create(lwpfun function, void *argument){
     executes the given function with the given argument
     returns thread id of new_thread, else NO_THREAD
     */
+    struct rlimit r;
     long testVal = sysconf(_SC_PAGE_SIZE);
-    printf("Pagesize in bytes: %ld \n", testVal);
+    int result = getrlimit(RLIMIT_STACK, &r);
+    if (result < 0){
+        perror("GetRLimit");
+        exit(-1);
+    }
+
+    if 
+    printf("_SC_PAGE_SIZE: %ld \n", testVal);
+    printf("RLIMIT_STACK: %ld\n", r.rlim_cur);
+
+    printf("limit / pagesize = %ld\n", r.rlim_cur/testVal);
+    printf("remainder %ld\n", r.rlim_cur % testVal);
+
+    /* Malloc for lwp */
+
+    
+
+
 
     return 0;
 }
