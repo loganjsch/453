@@ -54,6 +54,11 @@ typedef struct threadinfo_st {
   thread        exited;         /* and one for lwp_wait()  */
 } context;
 
+typedef struct Node {
+    thread data;
+    struct Node* next;
+} Node;
+
 typedef int (*lwpfun)(void *);  /* type for lwp function */
 
 /* Tuple that describes a scheduler */
@@ -65,6 +70,14 @@ typedef struct scheduler {
   thread (*next)(void);            /* select a thread to schedule   */
   int    (*qlen)(void);            /* number of ready threads       */
 } *scheduler;
+
+/* rr functions */
+void rr_init(void);
+void rr_shutdown(void);
+void rr_admit(thread new_thread);
+void rr_remove_thread(thread victim);
+thread rr_next(void);
+int rr_qlen(void);
 
 /* lwp functions */
 extern tid_t lwp_create(lwpfun,void *);

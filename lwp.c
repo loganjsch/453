@@ -13,8 +13,14 @@ Kenneth Choi & Logan Schwarz
 #include <sys/mman.h>
 #include <bits/mman.h>
 
+struct scheduler rr_publish = {NULL, NULL, rr_admit, rr_remove_thread, rr_next, rr_qlen};
+scheduler RoundRobin = &rr_publish;
+/* 
+    Now calling a function pointer is derefrencing it and applying to arg
+    thread nxt;
+    nxt = RoundRobin->next();
+*/
 
-#
 /*
 * _SC_PAGE_SIZE = 4096 bytes
 * RLIMIT_STACK = 8388608 bytes
@@ -51,8 +57,6 @@ tid_t lwp_create(lwpfun function, void *argument){
         perror("GetRLimit");
         exit(-1);
     }
-
-    
 
     printf("_SC_PAGE_SIZE: %ld \n", testVal);
     printf("RLIMIT_STACK: %ld\n", r.rlim_cur);
