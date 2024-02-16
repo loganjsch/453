@@ -17,16 +17,65 @@ Kenneth Choi & Logan Schwarz
 struct scheduler rr_publish = {NULL, NULL, rr_admit, rr_remove_thread, rr_next, rr_qlen};
 scheduler RoundRobin = &rr_publish;
 
-rfile icontext; /* Initial Context */
+rfile iRegisters; /* Initial registers */
 
 tid_t count = 0;
 thread lwps = NULL;
 thread curr = NULL;
+
+typedef struct Queue {
+    struct Node *front, *rear;
+} Queue;
+
+struct Queue *ready;
+struct Queue *waiting; 
+struct Queue *exited;
 /* 
     Now calling a function pointer is derefrencing it and applying to arg
     thread nxt;
     nxt = RoundRobin->next();
 */
+
+/* create a new node */
+struct Node* newNode(thread data){
+    struct Node* temp = (struct Node*)malloc(sizeof(struct Node));
+    temp->data = data;
+    temp->next = NULL;
+    return temp;
+}
+
+/* create a new queue */
+struct Queue* createQueue(){
+    struct Queue* q = (struct Queue*)malloc(sizeof(struct Queue));
+    q->front = q->rear = NULL;
+    return q;
+}
+
+/* add a new node to the queue */
+void enqueue(struct Queue* q, thread data){
+    struct Node* temp = newNode(data);
+    if (q->rear == NULL){
+        q->front = q->rear = temp;
+        return;
+    }
+    q->rear->next = temp;
+    q->rear = temp;
+}
+
+/* remove head */
+Node* dequeue(struct Queue* q){
+    if (q->front == NULL){
+        return NULL;
+    }
+    struct Node* temp = q->front;
+    q->front = q->front->next;
+    if (q->front == NULL){
+        q->rear = NULL;
+    }
+
+    return temp;
+}
+
 
 /*
 * _SC_PAGE_SIZE = 4096 bytes
@@ -40,6 +89,17 @@ tid_t lwp_create(lwpfun function, void *argument){
     executes the given function with the given argument
     returns thread id of new_thread, else NO_THREAD
     */
+
+   /* initialize ready waiting and terminated */
+    if (ready == NULL){
+        ready = createQueue();
+    }
+    if (waiting == NULL){
+        waiting = createQueue();
+    }
+    if (exited == NULL){
+        exited = createQueue();
+    }
 
     /* Initialize our lwp thread struct going no where */
     thread thislwp;
@@ -99,16 +159,13 @@ tid_t lwp_create(lwpfun function, void *argument){
         perror("mmap");
         exit(-1);
     }
-    */
-    /*
     if (munmap(stack, stackSize) == -1){
         perror("munmap");
         exit(-1);
-    }
-    */
+    }*/
 
     
-    /*thislwp->stack = stack;*/
+    /*thislwp->stack = stack; */
     thislwp->tid = count++;
 
     /* once we we set thislwp.stack pointer to base of stack  */
@@ -127,9 +184,9 @@ tid_t lwp_create(lwpfun function, void *argument){
 
     /* here we need to add it to lwp.c's list to track it */
 
-    /* now schedule it */
+    /* now schedule it and add to ready */
     RoundRobin->admit(thislwp);
-
+    enqueue(ready, thislwp);
     return thislwp->tid;
 }
 
@@ -138,7 +195,18 @@ void lwp_start(void){
     Starts LWP system by converting calling thread into a LWP
     and lwp_yield() to whichever thread the scheduler choses. 
     */
-    
+    // curr = RoundRobin->next(); 
+    // /* save original context and switch to thread context */
+    //  swap_rfiles(&iRegisters, &curr->state);
+    // return; 
+    thread callingThread = malloc(sizeof(context));
+    callingThread->tid = count++;
+    callingThread->stack = NULL;
+    callingThread->stacksize = 0;
+    callingThread->state = iRegisters;
+    curr = callingThread;
+    RoundRobin->admit(callingThread);
+
 }
 
 void lwp_yield(void){
@@ -146,6 +214,16 @@ void lwp_yield(void){
     Yields control to another LWP based on scheduler.
     Save's current LWP context, picks next one, restores that threads context, returns.
     */
+    thread next = RoundRobin->next();
+    if (next != NULL){
+        /* save original context and switch to thread context */
+        swap_rfiles(&curr->state, &next->state);
+        return;
+    }
+    else{
+        swap_rfiles(NULL, &iRegisters);
+        return;
+    }
 
 }
 
@@ -153,6 +231,12 @@ void lwp_exit(int status){
     /*
     Terminates the current LWP and yields to whichever thread the scheduler chooses.
     */
+    /* remove from ready and add to exited */
+    thread temp = dequeue(ready)->data;
+    temp->status = status;
+    enqueue(exited, temp);
+    lwp_yield();
+    return;
 }
 
 
@@ -162,6 +246,25 @@ tid_t lwp_wait(int *status){
     Waits for thread to terminate, deallocate resources, and reports temination status if non null 
     return tid of terminated thread or NO_THREAD
     */
+    /* if there are no terminated threads, caller of wait will be blocked
+        deschedule and place on waiting queue */
+    if (exited->front == NULL){
+        /* if no more threads to potentially block, then return NO_THREAD */
+        if (ready->front == NULL){
+            return NO_THREAD;
+        }
+        thread temp = dequeue(ready)->data;
+        enqueue(waiting, temp);
+        lwp_yield();
+    }
+    else{
+        /* if a thread calls lwp_exit() then remove from waiting queue and reschedule with scheduler->admit()*/
+        thread temp = dequeue(exited)->data;
+        *status = temp->status;
+        RoundRobin->admit(temp);
+        enqueue(ready, temp);
+        return temp->tid;
+    }
 }
     
 
