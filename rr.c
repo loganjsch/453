@@ -8,7 +8,7 @@ Node* head = NULL;
 Node* tail = NULL;
 
 void rr_init(void){
-    /* Initilializes the scheduler */
+    /* Initilializeds the scheduler */
     head = tail = NULL;
 }
 
