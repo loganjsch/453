@@ -94,7 +94,7 @@ int rr_qlen(){
     return length;
 }
 
-#ifdef RUN_TESTS
+/*
 void test_init_shutdown() {
     rr_init();
     assert(head == NULL && tail == NULL);
@@ -142,4 +142,4 @@ int main() {
     printf("All tests passed.\n");
     return 0;
 }
-#endif
+*/

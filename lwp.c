@@ -75,7 +75,8 @@ tid_t lwp_create(lwpfun function, void *argument){
     }
 
     /* Assuming this gets us the stack size in bytes? */
-    thislwp->stacksize = stackSize;
+    thislwp->stacksize = stackSize * WORD_SIZE;
+
 
     printf("_SC_PAGE_SIZE: %ld \n", testVal);
     printf("RLIMIT_STACK: %ld\n", r.rlim_cur);
@@ -83,22 +84,31 @@ tid_t lwp_create(lwpfun function, void *argument){
     printf("limit / pagesize = %ld\n", r.rlim_cur/testVal);
     printf("remainder %ld\n", r.rlim_cur % testVal);
 
+     /* pointer to base of stack */
+    thislwp->stack = (unsigned long *)malloc(stackSize * WORD_SIZE);
+
+    //size_t totalStackSize = stackSize * WORD_SIZE;
+    //thislwp->stack = (unsigned long *)mmap(NULL, stackSize * WORD_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
+
+    
+
     /* allocate space for lwp */
-    /* MAP_ANONYMOUS & MAP_STACK part of <sys/mman.h> according to documentation... */
+    /* MAP_ANONYMOUS & MAP_STACK part of <sys/mman.h> according to documentation... 
     stack = mmap(NULL, stackSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
     if (stack == MAP_FAILED){
         perror("mmap");
         exit(-1);
     }
-
+    */
     /*
     if (munmap(stack, stackSize) == -1){
         perror("munmap");
         exit(-1);
     }
     */
+
     
-    thislwp->stack = stack;
+    /*thislwp->stack = stack;*/
     thislwp->tid = count++;
 
     /* once we we set thislwp.stack pointer to base of stack  */
@@ -142,7 +152,7 @@ void lwp_yield(void){
 void lwp_exit(int status){
     /*
     Terminates the current LWP and yields to whichever thread the scheduler chooses.
-
+    */
 }
 
 
@@ -181,9 +191,11 @@ scheduler lwp_get_scheduler(void){
     */
 }
 
+/*
 int main(){
     lwpfun fake;
     void *fakeP;
     tid_t bubba = lwp_create(fake, fakeP);
     return 0;
 }
+*/

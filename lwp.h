@@ -9,6 +9,7 @@
 #define FALSE 0
 #endif
 
+#define WORD_SIZE sizeof(unsigned long)
 
 #if defined(__x86_64)
 #include "fp.h"

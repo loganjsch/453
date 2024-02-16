@@ -62,6 +62,7 @@ int main(int argc, char *argv[]){
   */
 
   for (i = 1; i <= 5; i++) {
+    printf("Trying...");
     tid_t tid = lwp_create((lwpfun)indentnum, (void *)(uintptr_t)i);
     if (tid == (tid_t)-1) {
         // Handle the error case if lwp_create failed
