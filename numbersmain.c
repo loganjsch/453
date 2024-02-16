@@ -55,8 +55,20 @@ int main(int argc, char *argv[]){
   printf("Launching LWPS\n");
 
   /* spawn a number of individual LWPs */
+  /*
   for(i=1;i<=5;i++) {
     lwp_create((lwpfun)indentnum,(void*)i);
+  }
+  */
+
+  for (i = 1; i <= 5; i++) {
+    tid_t tid = lwp_create((lwpfun)indentnum, (void *)(uintptr_t)i);
+    if (tid == (tid_t)-1) {
+        // Handle the error case if lwp_create failed
+        fprintf(stderr, "Failed to create LWP for iteration %d\n", i);
+    } else {
+        printf("Created LWP with thread ID: %lu\n", (unsigned long)tid);
+    }
   }
 
   lwp_start();

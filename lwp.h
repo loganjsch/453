@@ -40,6 +40,7 @@ registers {
 typedef unsigned long tid_t;
 #define NO_THREAD 0             /* an always invalid thread id */
 
+
 typedef struct threadinfo_st *thread;
 typedef struct threadinfo_st {
   tid_t         tid;            /* lightweight process id  */
@@ -47,10 +48,10 @@ typedef struct threadinfo_st {
   size_t        stacksize;      /* Size of allocated stack */
   rfile         state;          /* saved registers         */
   unsigned int  status;         /* exited? exit status?    */
-  thread        lib_one;        /* Two pointers reserved   */
-  thread        lib_two;        /* for use by the library  */
-  thread        sched_one;      /* Two more for            */
-  thread        sched_two;      /* schedulers to use       */
+  thread        right;        /* Two pointers reserved   */
+  thread        left;        /* for use by the library  */
+  thread        next;      /* Two more for            */
+  thread        prev;      /* schedulers to use       */
   thread        exited;         /* and one for lwp_wait()  */
 } context;
 

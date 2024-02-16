@@ -12,9 +12,16 @@ Kenneth Choi & Logan Schwarz
 #include <sys/resource.h>
 #include <sys/mman.h>
 #include <bits/mman.h>
+#include "rr.c"
 
 struct scheduler rr_publish = {NULL, NULL, rr_admit, rr_remove_thread, rr_next, rr_qlen};
 scheduler RoundRobin = &rr_publish;
+
+rfile icontext; /* Initial Context */
+
+tid_t count = 0;
+thread lwps = NULL;
+thread curr = NULL;
 /* 
     Now calling a function pointer is derefrencing it and applying to arg
     thread nxt;
@@ -33,7 +40,16 @@ tid_t lwp_create(lwpfun function, void *argument){
     executes the given function with the given argument
     returns thread id of new_thread, else NO_THREAD
     */
-    void *s;
+
+    /* Initialize our lwp thread struct going no where */
+    thread thislwp;
+    thislwp = malloc(sizeof(context));
+    thislwp->right = NULL;
+    thislwp->left = NULL;
+    thislwp->next = NULL;
+    thislwp->prev = NULL;
+
+    unsigned long *stack; 
     struct rlimit r;
     size_t stackSize = 0;
     long testVal = sysconf(_SC_PAGE_SIZE);
@@ -58,6 +74,9 @@ tid_t lwp_create(lwpfun function, void *argument){
         exit(-1);
     }
 
+    /* Assuming this gets us the stack size in bytes? */
+    thislwp->stacksize = stackSize;
+
     printf("_SC_PAGE_SIZE: %ld \n", testVal);
     printf("RLIMIT_STACK: %ld\n", r.rlim_cur);
 
@@ -66,18 +85,42 @@ tid_t lwp_create(lwpfun function, void *argument){
 
     /* allocate space for lwp */
     /* MAP_ANONYMOUS & MAP_STACK part of <sys/mman.h> according to documentation... */
-    s = mmap(NULL, stackSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
-    if (s == MAP_FAILED){
+    stack = mmap(NULL, stackSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
+    if (stack == MAP_FAILED){
         perror("mmap");
         exit(-1);
     }
 
-    if (munmap(s, stackSize) == -1){
+    /*
+    if (munmap(stack, stackSize) == -1){
         perror("munmap");
         exit(-1);
     }
+    */
     
-    return 0;
+    thislwp->stack = stack;
+    thislwp->tid = count++;
+
+    /* once we we set thislwp.stack pointer to base of stack  */
+    /* now set to highest on stack because it's supposed to grow downwards */
+    stack = (tid_t *)((tid_t)thislwp->stack + (tid_t)thislwp->stacksize - 1);
+
+    /* now we start initializing the stack downwards */
+    stack[0] = (unsigned long)lwp_exit;
+    stack[-1] = (unsigned long)function;
+    stack[-2] = (unsigned long)stack;
+
+    /* Need to initialize registers */
+    thislwp->state.rdi = (uintptr_t)argument;
+    thislwp->state.rbp = (stack - 2);
+    thislwp->state.fxsave = FPU_INIT; /* space to save floating point state */
+
+    /* here we need to add it to lwp.c's list to track it */
+
+    /* now schedule it */
+    RoundRobin->admit(thislwp);
+
+    return thislwp->tid;
 }
 
 void lwp_start(void){
@@ -99,8 +142,10 @@ void lwp_yield(void){
 void lwp_exit(int status){
     /*
     Terminates the current LWP and yields to whichever thread the scheduler chooses.
-    */
+
 }
+
+
 
 tid_t lwp_wait(int *status){
     /*
