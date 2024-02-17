@@ -19,7 +19,7 @@ scheduler RoundRobin = &rr_publish;
 
 rfile iRegisters; /* Initial registers */
 
-tid_t count = 0;
+tid_t count = 1;
 thread lwps = NULL;
 thread curr = NULL;
 
@@ -137,14 +137,7 @@ tid_t lwp_create(lwpfun function, void *argument){
     /* Assuming this gets us the stack size in bytes? */
     thislwp->stacksize = stackSize * WORD_SIZE;
 
-
-    printf("_SC_PAGE_SIZE: %ld \n", testVal);
-    printf("RLIMIT_STACK: %ld\n", r.rlim_cur);
-
-    printf("limit / pagesize = %ld\n", r.rlim_cur/testVal);
-    printf("remainder %ld\n", r.rlim_cur % testVal);
-
-     /* pointer to base of stack */
+    /* pointer to base of stack */
     thislwp->stack = (unsigned long *)malloc(stackSize * WORD_SIZE);
 
     //size_t totalStackSize = stackSize * WORD_SIZE;
@@ -265,9 +258,11 @@ tid_t lwp_wait(int *status){
             return NO_THREAD;
         }
         thread temp = dequeue(ready)->data;
+        *status = temp->tid;
         enqueue(waiting, temp);
         lwp_yield();
         RoundRobin->remove(temp);
+        return MKTERMSTAT(*status, 0xFF);
     }
     else{
         /* if a thread calls lwp_exit() then remove from waiting queue and reschedule with scheduler->admit()*/
