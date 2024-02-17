@@ -309,6 +309,25 @@ void lwp_set_scheduler(scheduler sched){
     transfers all threads from the old scheduler to the new one in next() order
     if scheduler is NULL the library should return to round-robin scheduling
     */
+    // Pointer to hold the old scheduler.
+    scheduler oldSched = RoundRobin;
+
+    // Check if the new scheduler is NULL, and set to default round-robin if it is.
+    if (sched == NULL) {
+        sched = RoundRobin;  // Assume round_robin_scheduler is your default scheduler
+    }
+
+    // Set the current scheduler to the new scheduler.
+    RoundRobin = sched;
+
+    // Transfer all threads from the old scheduler to the new one.
+    if (oldSched != NULL) {
+        thread tempThread;
+        while ((tempThread = oldSched->next()) != NULL) {
+            oldSched->remove(tempThread);  // Remove thread from old scheduler
+            sched->admit(tempThread);   // Admit thread to new scheduler
+        }
+    }
    
 
 }
