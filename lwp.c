@@ -279,12 +279,28 @@ tid_t lwp_gettid(void){
     /*
     returns the tid of the calling LWP or NO_THREAD if not calle by a LWP
     */
+    if (!curr){
+        return NO_THREAD;
+    }
+    return curr->tid;
 }
 
 thread tid2thread(tid_t tid){
     /*
     returns teh thread corresponding to given threadID, else NULL
     */
+    thread searchthread;
+
+    saerchthread = curr;
+
+    while (searchthread){
+        if (searchthread->tid == tid){
+            return searchthread;
+        }
+        searchthread = searchthread->next;
+    }
+
+    return NULL;
 }
 
 void lwp_set_scheduler(scheduler sched){
@@ -293,12 +309,15 @@ void lwp_set_scheduler(scheduler sched){
     transfers all threads from the old scheduler to the new one in next() order
     if scheduler is NULL the library should return to round-robin scheduling
     */
+   
+
 }
 
 scheduler lwp_get_scheduler(void){
     /*
     returns pointer to current scheduler
     */
+    return RoundRobin;
 }
 
 /*
