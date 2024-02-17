@@ -151,7 +151,6 @@ tid_t lwp_create(lwpfun function, void *argument){
     //thislwp->stack = (unsigned long *)mmap(NULL, stackSize * WORD_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
 
     
-
     /* allocate space for lwp */
     /* MAP_ANONYMOUS & MAP_STACK part of <sys/mman.h> according to documentation... 
     stack = mmap(NULL, stackSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
@@ -236,10 +235,18 @@ void lwp_exit(int status){
     Terminates the current LWP and yields to whichever thread the scheduler chooses.
     */
     /* remove from ready and add to exited */
-    thread temp = dequeue(ready)->data;
-    temp->status = status;
-    enqueue(exited, temp);
-    lwp_yield();
+    // thread temp = dequeue(ready)->data;
+    // temp->status = status;
+    // enqueue(exited, temp);
+    // lwp_yield();
+
+    if (curr) {
+        RoundRobin->remove(curr);
+        free(curr->stack);
+        free(curr);
+        curr = RoundRobin->next();
+    }
+
     return;
 }
 
@@ -260,6 +267,7 @@ tid_t lwp_wait(int *status){
         thread temp = dequeue(ready)->data;
         enqueue(waiting, temp);
         lwp_yield();
+        RoundRobin->remove(temp);
     }
     else{
         /* if a thread calls lwp_exit() then remove from waiting queue and reschedule with scheduler->admit()*/
