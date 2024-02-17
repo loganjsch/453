@@ -214,16 +214,20 @@ void lwp_yield(void){
     Yields control to another LWP based on scheduler.
     Save's current LWP context, picks next one, restores that threads context, returns.
     */
-    thread next = RoundRobin->next();
-    if (next != NULL){
-        /* save original context and switch to thread context */
-        swap_rfiles(&curr->state, &next->state);
-        return;
-    }
-    else{
-        swap_rfiles(NULL, &iRegisters);
-        return;
-    }
+    thread temp;
+    temp = curr;
+    curr = RoundRobin->next();
+    //thread next = RoundRobin->next();
+    // if (next != NULL){
+    //     /* save original context and switch to thread context */
+    //     swap_rfiles(&curr->state, &next->state);
+    //     return;
+    // }
+    // else{
+    //     swap_rfiles(NULL, &iRegisters);
+    //     return;
+    // }
+    swap_rfiles(&temp->state, &curr->state);
 
 }
 
