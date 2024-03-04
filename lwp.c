@@ -258,11 +258,11 @@ tid_t lwp_wait(int *status){
             return NO_THREAD;
         }
         thread temp = dequeue(ready)->data;
-        *status = temp->tid;
+        *status = MKTERMSTAT(*status, 0xFF);
         enqueue(waiting, temp);
         lwp_yield();
         RoundRobin->remove(temp);
-        return MKTERMSTAT(*status, 0xFF);
+        return temp->tid;
     }
     else{
         /* if a thread calls lwp_exit() then remove from waiting queue and reschedule with scheduler->admit()*/
@@ -291,7 +291,7 @@ thread tid2thread(tid_t tid){
     */
     thread searchthread;
 
-    saerchthread = curr;
+    searchthread = curr;
 
     while (searchthread){
         if (searchthread->tid == tid){
